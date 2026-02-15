@@ -5,7 +5,9 @@
       "WebSearch",
       "WebFetch(domain:docs.birdeye.so)",
       "WebFetch(domain:docs.helius.dev)",
-      "WebFetch(domain:www.helius.dev)"
+      "WebFetch(domain:www.helius.dev)",
+      "mcp__codex__codex-reply",
+      "Bash(npx shadcn@latest list:*)"
     ]
   }
 }
