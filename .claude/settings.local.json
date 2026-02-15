@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "mcp__codex__codex"
+      "mcp__codex__codex",
+      "WebSearch",
+      "WebFetch(domain:docs.birdeye.so)",
+      "WebFetch(domain:docs.helius.dev)",
+      "WebFetch(domain:www.helius.dev)"
     ]
   }
 }
