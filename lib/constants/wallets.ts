@@ -1,0 +1,1 @@
+export const WHALE_WALLET = '5Mk8MG41VqYMwNrnSsWPN11XCwXuwRVWfDP3Xh1n4ppf';

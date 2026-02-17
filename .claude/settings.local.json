@@ -7,7 +7,20 @@
       "WebFetch(domain:docs.helius.dev)",
       "WebFetch(domain:www.helius.dev)",
       "mcp__codex__codex-reply",
-      "Bash(npx shadcn@latest list:*)"
+      "Bash(npx shadcn@latest list:*)",
+      "WebFetch(domain:docs.mobula.io)",
+      "WebFetch(domain:developer.mobula.io)",
+      "WebFetch(domain:docs.mobula.fi)",
+      "mcp__exa__web_search_exa",
+      "Bash(~/.claude/mcp.json:*)",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const path = ''C:\\\\\\\\Users\\\\\\\\asd10\\\\\\\\.claude.json''; const data = JSON.parse\\(fs.readFileSync\\(path, ''utf8''\\)\\); data.projects[''D:/solana-dashboard''].mcpServers = {exa: {type: ''http'', url: ''https://mcp.exa.ai/mcp''}}; fs.writeFileSync\\(path, JSON.stringify\\(data, null, 2\\)\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const path = ''/c/Users/asd10/.claude.json''; const data = JSON.parse\\(fs.readFileSync\\(path, ''utf8''\\)\\); data.projects[''D:/solana-dashboard''].mcpServers = {exa: {type: ''http'', url: ''https://mcp.exa.ai/mcp''}}; fs.writeFileSync\\(path, JSON.stringify\\(data, null, 2\\)\\);\")",
+      "Bash(node update-mcp.js:*)",
+      "Bash(node update-global-mcp.js:*)",
+      "mcp__exa__get_code_context_exa",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(python -c:*)"
     ]
   }
 }

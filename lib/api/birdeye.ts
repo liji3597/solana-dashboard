@@ -17,7 +17,7 @@ export async function getWalletPnL(walletAddress: string): Promise<BirdeyeWallet
     }
 
     const params = new URLSearchParams({ wallet: walletAddress });
-    const response = await fetch(`https://public-api.birdeye.so/v1/wallet/pnl?${params.toString()}`, {
+    const response = await fetch(`https://public-api.birdeye.so/wallet/v2/pnl?${params.toString()}`, {
       method: 'GET',
       headers: {
         'X-API-KEY': apiKey,
@@ -45,3 +45,4 @@ export async function getWalletPnL(walletAddress: string): Promise<BirdeyeWallet
     throw formatApiError(error, 'Failed to fetch PnL from Birdeye');
   }
 }
+

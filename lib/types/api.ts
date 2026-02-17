@@ -34,3 +34,20 @@ export interface BirdeyeWalletPnL {
   overall_roi: number;
   tokens: BirdeyeTokenPnL[];
 }
+
+export interface MobulaTokenPosition {
+  token: {
+    symbol: string;
+    address: string;
+    name: string;
+  };
+  balance: number;
+  value: number;
+  unrealizedPnl?: number;
+  realizedPnl?: number;
+}
+
+export interface MobulaWalletPositions {
+  positions: MobulaTokenPosition[];
+  totalValue?: number;
+}
