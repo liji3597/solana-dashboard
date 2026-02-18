@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { EntrySheet } from "@/components/dashboard/entry-sheet";
+import {
+  ALL_TOKENS,
+  TransactionFilters,
+} from "@/components/dashboard/transaction-filters";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -79,6 +83,16 @@ function formatHash(signature: string): string {
   return `${signature.slice(0, 4)}...${signature.slice(-4)}`;
 }
 
+/**
+ * Convert a transaction timestamp to YYYY-MM-DD for date comparison.
+ */
+function timestampToDateString(timestamp: number): string {
+  const ms = toTimestampMs(timestamp);
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function TransactionTable({ data, isLoading }: TransactionTableProps) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<SwapTransaction | null>(null);
@@ -86,6 +100,11 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
   const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntry>>(
     new Map()
   );
+
+  // ── Filter state ──
+  const [selectedToken, setSelectedToken] = useState(ALL_TOKENS);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const formattedTransactions = useMemo<FormattedTransaction[]>(
     () =>
@@ -100,6 +119,28 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
       })),
     [data]
   );
+
+  // ── Apply filters ──
+  const filteredTransactions = useMemo(() => {
+    return formattedTransactions.filter((tx) => {
+      // Token filter
+      if (selectedToken !== ALL_TOKENS) {
+        const symbols = tx.raw.tokenSymbols ?? [];
+        const matchesToken = symbols.some(
+          (s) => s.toUpperCase() === selectedToken.toUpperCase()
+        );
+        if (!matchesToken) return false;
+      }
+
+      // Date range filter
+      const txDate = timestampToDateString(tx.raw.timestamp);
+
+      if (dateFrom && txDate < dateFrom) return false;
+      if (dateTo && txDate > dateTo) return false;
+
+      return true;
+    });
+  }, [formattedTransactions, selectedToken, dateFrom, dateTo]);
 
   useEffect(() => {
     const signatures = Array.from(
@@ -170,6 +211,21 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+      {/* Filter bar */}
+      {!isLoading && data.length > 0 && (
+        <TransactionFilters
+          transactions={data}
+          selectedToken={selectedToken}
+          onTokenChange={setSelectedToken}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          filteredCount={filteredTransactions.length}
+          totalCount={formattedTransactions.length}
+        />
+      )}
+
       <Table className="min-w-[760px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -183,36 +239,38 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
         <TableBody>
           {isLoading
             ? Array.from({ length: SKELETON_ROWS }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className="hover:bg-transparent">
-                  <TableCell>
-                    <div className="h-4 w-36 animate-pulse rounded bg-muted" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-28 animate-pulse rounded bg-muted" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-7 w-20 animate-pulse rounded bg-muted" />
-                  </TableCell>
-                </TableRow>
-              ))
+              <TableRow key={`skeleton-${index}`} className="hover:bg-transparent">
+                <TableCell>
+                  <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-7 w-20 animate-pulse rounded bg-muted" />
+                </TableCell>
+              </TableRow>
+            ))
             : null}
 
-          {!isLoading && formattedTransactions.length === 0 ? (
+          {!isLoading && filteredTransactions.length === 0 ? (
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
-                No transactions found
+                {formattedTransactions.length === 0
+                  ? "No transactions found"
+                  : "No transactions match the current filters"}
               </TableCell>
             </TableRow>
           ) : null}
 
           {!isLoading &&
-            formattedTransactions.map((transaction) => (
+            filteredTransactions.map((transaction) => (
               <TableRow key={transaction.signature} className="hover:bg-muted/50">
                 <TableCell>{transaction.date}</TableCell>
                 <TableCell>{transaction.platform}</TableCell>

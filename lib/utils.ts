@@ -254,6 +254,34 @@ export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction
     action = `${swapMatch[1]} -> ${swapMatch[2]}`;
   }
 
+  // Extract token symbols from description and transfers
+  const symbols = new Set<string>();
+
+  // From the swap match (e.g., "SOL -> USDC")
+  if (swapMatch) {
+    symbols.add(swapMatch[1].toUpperCase());
+    symbols.add(swapMatch[2].toUpperCase());
+  }
+
+  // From action arrows (handles pre-formatted actions like "SOL -> USDC")
+  const arrowMatch = action.match(/(\w+)\s*->\s*(\w+)/);
+  if (arrowMatch) {
+    symbols.add(arrowMatch[1].toUpperCase());
+    symbols.add(arrowMatch[2].toUpperCase());
+  }
+
+  // Also extract all capitalized words from the description that look like symbols
+  const descWords = (tx.description || '').match(/\b[A-Z][A-Z0-9]{1,9}\b/g);
+  if (descWords) {
+    for (const word of descWords) {
+      // Filter out common non-symbol words
+      const excluded = new Set(['THE', 'FOR', 'AND', 'WITH', 'FROM', 'INTO']);
+      if (!excluded.has(word)) {
+        symbols.add(word);
+      }
+    }
+  }
+
   const status: 'success' | 'failed' = tx.transactionError ? 'failed' : 'success';
 
   return {
@@ -263,5 +291,6 @@ export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction
     platform: tx.source || 'Unknown',
     action,
     status,
+    tokenSymbols: Array.from(symbols),
   };
 }

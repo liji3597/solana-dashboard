@@ -113,6 +113,7 @@ export interface SwapTransaction {
   platform: string; // 来源平台 (Jupiter, Raydium 等)
   action: string; // 简短描述 (SOL -> USDC)
   status: 'success' | 'failed';
+  tokenSymbols: string[]; // 涉及的代币符号，如 ['SOL', 'USDC']
 }
 
 export interface SaveJournalEntryInput {

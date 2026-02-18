@@ -1,6 +1,6 @@
 'use server';
 
-import { getPortfolioHistory } from '@/lib/api/valuation';
+import { fetchPortfolioHistory, getPortfolioHistoryFallback } from '@/lib/api/valuation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { calculateDailyReturns, calculateSharpeRatio } from '@/lib/utils';
 import type { JournalStats } from '@/lib/types/api';
@@ -36,14 +36,29 @@ function createEmptyStats(): JournalStats {
   };
 }
 
-function calculatePortfolioSharpeRatio(netWorth?: number): number | null {
+async function calculatePortfolioSharpeRatio(
+  walletAddress: string,
+  netWorth?: number,
+): Promise<number | null> {
   const safeNetWorth = Number(netWorth);
 
   if (!Number.isFinite(safeNetWorth) || safeNetWorth <= 0) {
     return null;
   }
 
-  const history = getPortfolioHistory(safeNetWorth);
+  let history;
+  try {
+    // Try real portfolio history from Mobula
+    history = await fetchPortfolioHistory(walletAddress, 30);
+  } catch {
+    // Fallback to simulated data if the API is down
+    history = getPortfolioHistoryFallback(safeNetWorth);
+  }
+
+  if (!history || history.length < 2) {
+    return null;
+  }
+
   const dailyReturns = calculateDailyReturns(history);
   return calculateSharpeRatio(dailyReturns);
 }
@@ -54,7 +69,7 @@ export async function getJournalStats(
 ): Promise<ActionResult<JournalStats>> {
   try {
     const stats = createEmptyStats();
-    stats.sharpeRatio = calculatePortfolioSharpeRatio(netWorth);
+    stats.sharpeRatio = await calculatePortfolioSharpeRatio(walletAddress, netWorth);
 
     if (!walletAddress.trim()) {
       return {
