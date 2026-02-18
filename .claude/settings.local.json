@@ -20,7 +20,14 @@
       "mcp__exa__get_code_context_exa",
       "Bash(curl:*)",
       "Bash(python -m json.tool:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(npm run dev)",
+      "Bash(npx shadcn@latest add table)",
+      "Bash(npx tsc --noEmit)",
+      "mcp__ide__getDiagnostics",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3001\")",
+      "Bash(npm run build)"
     ]
   }
 }

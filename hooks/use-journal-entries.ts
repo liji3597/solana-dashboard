@@ -1,4 +1,5 @@
 ﻿import {
+  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -50,7 +51,7 @@ export const useJournalEntries = (limit?: number, offset?: number) => {
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };
 

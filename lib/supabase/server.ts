@@ -12,8 +12,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const createSupabaseServerClient = (): SupabaseClient<Database> => {
-  const cookieStore = cookies();
+export const createSupabaseServerClient = async (): Promise<SupabaseClient<Database>> => {
+  const cookieStore = await cookies();
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -31,7 +31,7 @@ export const createSupabaseServerClient = (): SupabaseClient<Database> => {
 };
 
 export const getServerWallet = async (): Promise<string | null> => {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error) {
@@ -51,7 +51,7 @@ export const getServerWallet = async (): Promise<string | null> => {
 };
 
 export const serverSignOut = async (): Promise<void> => {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signOut();
 
   if (error) {

@@ -39,7 +39,7 @@ export const createJournalEntry = async (
       throw new Error('Unable to create journal entry: Empty response payload');
     }
 
-    return data;
+    return data as JournalEntry;
   } catch (error) {
     throw formatError(error, 'Unable to create journal entry');
   }
@@ -65,7 +65,7 @@ export const getMyJournalEntries = async (
     const { data, error } = await query;
     assertNoError(error, 'Unable to fetch journal entries');
 
-    return data ?? [];
+    return (data ?? []) as JournalEntry[];
   } catch (error) {
     throw formatError(error, 'Unable to fetch journal entries');
   }
@@ -84,7 +84,7 @@ export const getEntryByTxSignature = async (
 
     assertNoError(error, 'Unable to fetch journal entry');
 
-    return data;
+    return (data ?? null) as JournalEntry | null;
   } catch (error) {
     throw formatError(error, 'Unable to fetch journal entry');
   }
@@ -105,7 +105,7 @@ export const searchByTags = async (tags: string[]): Promise<JournalEntry[]> => {
 
     assertNoError(error, 'Unable to search by tags');
 
-    return data ?? [];
+    return (data ?? []) as JournalEntry[];
   } catch (error) {
     throw formatError(error, 'Unable to search by tags');
   }
@@ -129,7 +129,7 @@ export const filterByRating = async (
 
     assertNoError(error, 'Unable to filter by rating');
 
-    return data ?? [];
+    return (data ?? []) as JournalEntry[];
   } catch (error) {
     throw formatError(error, 'Unable to filter by rating');
   }
@@ -154,7 +154,7 @@ export const updateJournalEntry = async (
       throw new Error('Unable to update journal entry: Empty response payload');
     }
 
-    return data;
+    return data as JournalEntry;
   } catch (error) {
     throw formatError(error, 'Unable to update journal entry');
   }

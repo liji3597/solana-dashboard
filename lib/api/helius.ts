@@ -1,4 +1,4 @@
-import type { HeliusAssetsResponse } from '../types/api';
+import type { HeliusAssetsResponse, HeliusTransaction } from '../types/api';
 import { formatApiError, validateSolanaAddress } from '../utils';
 
 interface HeliusRpcSuccess {
@@ -59,5 +59,53 @@ export async function getAssetsByOwner(
     return payload.result;
   } catch (error) {
     throw formatApiError(error, 'Failed to fetch assets from Helius');
+  }
+}
+
+export async function getRecentTransactions(
+  walletAddress: string,
+  limit: number = 20,
+  type?: string
+): Promise<HeliusTransaction[]> {
+  try {
+    validateSolanaAddress(walletAddress);
+
+    const apiKey = process.env.HELIUS_API_KEY;
+    if (!apiKey) {
+      throw new Error('HELIUS_API_KEY environment variable is not set');
+    }
+
+    // 使用 Enhanced Transactions API (api-mainnet.helius-rpc.com)
+    const url = new URL(`https://api-mainnet.helius-rpc.com/v0/addresses/${walletAddress}/transactions`);
+    url.searchParams.set('api-key', apiKey);
+    if (type) {
+      url.searchParams.set('type', type);
+    }
+    url.searchParams.set('limit', limit.toString());
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+    });
+
+    // Helius returns 404 when no matching transactions are found in the
+    // search window. This is expected behaviour, not an actual error.
+    if (response.status === 404) {
+      return [];
+    }
+
+    if (!response.ok) {
+      throw new Error(`Helius request failed with status ${response.status}`);
+    }
+
+    const transactions = (await response.json()) as HeliusTransaction[];
+
+    // 验证返回数据
+    if (!Array.isArray(transactions)) {
+      throw new Error('Helius API returned invalid data format');
+    }
+
+    return transactions;
+  } catch (error) {
+    throw formatApiError(error, 'Failed to fetch transactions from Helius');
   }
 }
