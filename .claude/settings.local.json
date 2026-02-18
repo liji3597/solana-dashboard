@@ -27,7 +27,14 @@
       "mcp__ide__getDiagnostics",
       "Bash(netstat -ano)",
       "Bash(findstr \":3001\")",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(supabase db push)",
+      "Bash(npm install -g supabase)",
+      "Bash(node scripts/setup-journal-table.js)",
+      "Bash(test-journal-save.js:*)",
+      "Bash(node test-journal-save.js)",
+      "Bash(taskkill /F /PID 18104)",
+      "Bash(taskkill //F //PID 18104)"
     ]
   }
 }

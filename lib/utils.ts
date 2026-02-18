@@ -100,31 +100,161 @@ export function calculateMaxDrawdown(
 }
 
 /**
- * 将 Helius 原始交易数据转换为 UI 展示格式
+ * Calculate day-over-day returns in a single pass (O(n)).
+ *
+ * Return values are decimals (e.g. 0.01 = 1%).
+ *
+ * Edge cases:
+ * - Fewer than 2 points: returns an empty array.
+ * - Non-finite values: skipped.
+ * - Previous value of 0: skipped to avoid divide-by-zero.
+ */
+export function calculateDailyReturns(data: Array<{ value: number }>): number[] {
+  if (data.length < 2) {
+    return [];
+  }
+
+  const returns: number[] = [];
+
+  for (let index = 1; index < data.length; index += 1) {
+    const previousValue = data[index - 1]?.value;
+    const currentValue = data[index]?.value;
+
+    if (!Number.isFinite(previousValue) || !Number.isFinite(currentValue)) {
+      continue;
+    }
+
+    if (previousValue === 0) {
+      continue;
+    }
+
+    returns.push((currentValue - previousValue) / previousValue);
+  }
+
+  return returns;
+}
+
+/**
+ * Calculate sample standard deviation in O(n) time.
+ *
+ * Edge cases:
+ * - Fewer than 2 finite values: returns 0.
+ * - Zero variance: returns 0.
+ */
+export function calculateStandardDeviation(values: number[]): number {
+  let count = 0;
+  let sum = 0;
+
+  for (const value of values) {
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+
+    count += 1;
+    sum += value;
+  }
+
+  if (count < 2) {
+    return 0;
+  }
+
+  const mean = sum / count;
+  let squaredDiffSum = 0;
+
+  for (const value of values) {
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+
+    const diff = value - mean;
+    squaredDiffSum += diff * diff;
+  }
+
+  const variance = squaredDiffSum / (count - 1);
+
+  if (variance <= 0) {
+    return 0;
+  }
+
+  return Math.sqrt(variance);
+}
+
+/**
+ * Calculate annualized Sharpe ratio from daily returns.
+ *
+ * Edge cases:
+ * - Insufficient data (<2 finite returns): returns null.
+ * - Zero volatility: returns null.
+ * - Non-finite result: returns null.
+ */
+export function calculateSharpeRatio(
+  dailyReturns: number[],
+  annualRiskFreeRate = 0.02,
+  tradingDays = 252
+): number | null {
+  if (tradingDays <= 0) {
+    return null;
+  }
+
+  let count = 0;
+  let sum = 0;
+
+  for (const dailyReturn of dailyReturns) {
+    if (!Number.isFinite(dailyReturn)) {
+      continue;
+    }
+
+    count += 1;
+    sum += dailyReturn;
+  }
+
+  if (count < 2) {
+    return null;
+  }
+
+  const averageDailyReturn = sum / count;
+  const dailyVolatility = calculateStandardDeviation(dailyReturns);
+
+  if (dailyVolatility === 0) {
+    return null;
+  }
+
+  const safeRiskFreeRate = Number.isFinite(annualRiskFreeRate) ? annualRiskFreeRate : 0;
+  const dailyRiskFreeRate = safeRiskFreeRate / tradingDays;
+  const sharpeRatio =
+    ((averageDailyReturn - dailyRiskFreeRate) / dailyVolatility) * Math.sqrt(tradingDays);
+
+  if (!Number.isFinite(sharpeRatio)) {
+    return null;
+  }
+
+  return Number(sharpeRatio.toFixed(4));
+}
+
+/**
+ * Transform Helius transaction payload to the UI swap transaction shape.
  */
 export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction {
-  // 格式化日期
   const date = new Date(tx.timestamp * 1000);
-  const formattedDate = date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).replace(',', '');
+  const formattedDate = date
+    .toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    .replace(',', '');
 
-  // 提取交易对信息（从 description 或 tokenTransfers）
   let action = tx.description || 'Unknown Swap';
-
-  // 简化描述（例如："Swapped 1 SOL for 50 USDC" -> "SOL -> USDC"）
   const swapMatch = action.match(/(\w+)\s+for\s+(\w+)/i);
+
   if (swapMatch) {
     action = `${swapMatch[1]} -> ${swapMatch[2]}`;
   }
 
-  // 确定状态
-  const status = tx.transactionError ? 'failed' : 'success';
+  const status: 'success' | 'failed' = tx.transactionError ? 'failed' : 'success';
 
   return {
     signature: tx.signature,

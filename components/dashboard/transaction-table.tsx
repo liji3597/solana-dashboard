@@ -169,15 +169,15 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
   }, []);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
       <Table className="min-w-[760px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-slate-600">Date</TableHead>
-            <TableHead className="text-slate-600">Platform</TableHead>
-            <TableHead className="text-slate-600">Action</TableHead>
-            <TableHead className="text-slate-600">Hash</TableHead>
-            <TableHead className="text-slate-600">Log Status</TableHead>
+            <TableHead className="text-muted-foreground">Date</TableHead>
+            <TableHead className="text-muted-foreground">Platform</TableHead>
+            <TableHead className="text-muted-foreground">Action</TableHead>
+            <TableHead className="text-muted-foreground">Hash</TableHead>
+            <TableHead className="text-muted-foreground">Log Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -185,19 +185,19 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
             ? Array.from({ length: SKELETON_ROWS }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`} className="hover:bg-transparent">
                   <TableCell>
-                    <div className="h-4 w-36 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-36 animate-pulse rounded bg-muted" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-28 animate-pulse rounded bg-muted" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-20 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-7 w-20 animate-pulse rounded bg-slate-200" />
+                    <div className="h-7 w-20 animate-pulse rounded bg-muted" />
                   </TableCell>
                 </TableRow>
               ))
@@ -205,7 +205,7 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
           {!isLoading && formattedTransactions.length === 0 ? (
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={5} className="py-8 text-center text-sm text-slate-500">
+              <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
                 No transactions found
               </TableCell>
             </TableRow>
@@ -213,7 +213,7 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
           {!isLoading &&
             formattedTransactions.map((transaction) => (
-              <TableRow key={transaction.signature} className="hover:bg-slate-50">
+              <TableRow key={transaction.signature} className="hover:bg-muted/50">
                 <TableCell>{transaction.date}</TableCell>
                 <TableCell>{transaction.platform}</TableCell>
                 <TableCell>{transaction.action}</TableCell>
@@ -222,7 +222,7 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
                     href={transaction.solscanUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sky-700 transition-colors hover:text-sky-800 hover:underline"
+                    className="text-primary transition-colors hover:text-primary/80 hover:underline"
                   >
                     {transaction.shortHash}
                   </a>
@@ -237,8 +237,8 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
                     onClick={() => handleOpenSheet(transaction.raw)}
                     className={
                       journalEntries.has(transaction.signature)
-                        ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
+                        ? "border-border bg-card text-card-foreground hover:bg-muted"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
                     }
                   >
                     {journalEntries.has(transaction.signature)

@@ -122,3 +122,18 @@ export interface SaveJournalEntryInput {
   notes: string;
 }
 
+export interface TagWinRate {
+  tag: string;
+  totalTrades: number;
+  winningTrades: number;
+  winRate: number;
+}
+
+export interface JournalStats {
+  ratingDistribution: Record<number, number>;
+  tagFrequency: Record<string, number>;
+  totalEntries: number;
+  sharpeRatio?: number | null;
+  tagWinRates?: TagWinRate[];
+}
+

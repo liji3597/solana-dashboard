@@ -34,8 +34,8 @@ export const getServerWallet = async (): Promise<string | null> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 
-  if (error) {
-    throw new Error(`Unable to read wallet from server session: ${error.message}`);
+  if (error || !data.user) {
+    return null;
   }
 
   const user = data.user;

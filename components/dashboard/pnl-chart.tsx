@@ -64,24 +64,24 @@ export function PnlChart({ data, isLoading }: PnlChartProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="h-5 w-52 animate-pulse rounded bg-slate-200" />
-          <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
+          <div className="h-5 w-52 animate-pulse rounded bg-muted" />
+          <div className="h-5 w-40 animate-pulse rounded bg-muted" />
         </div>
-        <div className="mt-6 h-[300px] w-full animate-pulse rounded bg-slate-200" />
+        <div className="mt-6 h-[300px] w-full animate-pulse rounded bg-muted" />
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-slate-500">Portfolio Value (30 Days)</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">Portfolio Value (30 Days)</h3>
           <p className="text-sm font-semibold text-rose-600">Max Drawdown: --</p>
         </div>
-        <div className="mt-6 flex h-[300px] items-center justify-center rounded border border-dashed border-slate-200 text-sm text-slate-500">
+        <div className="mt-6 flex h-[300px] items-center justify-center rounded border border-dashed border-border text-sm text-muted-foreground">
           No data available
         </div>
       </div>
@@ -89,9 +89,9 @@ export function PnlChart({ data, isLoading }: PnlChartProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-sm font-medium text-slate-500">Portfolio Value (30 Days)</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Portfolio Value (30 Days)</h3>
         <p className="text-sm font-semibold text-rose-600">Max Drawdown: {maxDrawdownLabel}</p>
       </div>
 
@@ -105,30 +105,31 @@ export function PnlChart({ data, isLoading }: PnlChartProps) {
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
 
             <XAxis
               dataKey="date"
               tickFormatter={(value) => formatDate(String(value), axisDateFormatter)}
-              tick={{ fill: "#475569", fontSize: 12 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-              tickLine={{ stroke: "#cbd5e1" }}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+              axisLine={{ stroke: "var(--border)" }}
+              tickLine={{ stroke: "var(--border)" }}
               minTickGap={24}
             />
             <YAxis
               tickFormatter={(value) => formatYAxisValue(Number(value))}
-              tick={{ fill: "#475569", fontSize: 12 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-              tickLine={{ stroke: "#cbd5e1" }}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+              axisLine={{ stroke: "var(--border)" }}
+              tickLine={{ stroke: "var(--border)" }}
               width={60}
             />
             <Tooltip
               labelFormatter={(label) => formatDate(String(label), tooltipDateFormatter)}
               formatter={(value) => [currencyFormatter.format(Number(value)), "Value"]}
               contentStyle={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e2e8f0",
+                backgroundColor: "var(--popover)",
+                border: "1px solid var(--border)",
                 borderRadius: "0.5rem",
+                color: "var(--popover-foreground)",
               }}
             />
             <Area
