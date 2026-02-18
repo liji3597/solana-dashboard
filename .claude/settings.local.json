@@ -34,7 +34,10 @@
       "Bash(test-journal-save.js:*)",
       "Bash(node test-journal-save.js)",
       "Bash(taskkill /F /PID 18104)",
-      "Bash(taskkill //F //PID 18104)"
+      "Bash(taskkill //F //PID 18104)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/ai/package.json''\\); console.log\\(''ai:'', pkg.version\\)\")",
+      "Bash(node:*)"
     ]
   }
 }
