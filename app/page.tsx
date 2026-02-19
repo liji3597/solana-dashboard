@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AiCoach } from "@/components/dashboard/ai-coach";
 import { AnalyticsView } from "@/components/dashboard/analytics-view";
 import { FeeCompositionChart } from "@/components/dashboard/fee-composition-chart";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -8,6 +9,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { PnlChart } from "@/components/dashboard/pnl-chart";
 import { TradingMetrics } from "@/components/dashboard/trading-metrics";
 import { TimeAnalysis } from "@/components/dashboard/time-analysis";
+import { OrderAnalysis } from "@/components/dashboard/order-analysis";
 import { TransactionTable } from "@/components/dashboard/transaction-table";
 import { getJournalStats } from "@/lib/actions/analytics";
 import { WHALE_WALLET } from "@/lib/constants/wallets";
@@ -147,10 +149,13 @@ export default function HomePage() {
         <PnlChart data={historyData} isLoading={isLoadingHistory} />
         <TradingMetrics />
         <TimeAnalysis />
+        <OrderAnalysis />
         <FeeCompositionChart />
         <AnalyticsView stats={analyticsData} isLoading={analyticsLoading} />
         <TransactionTable data={transactions} isLoading={isLoadingTransactions} />
       </main>
+
+      <AiCoach />
     </div>
   );
 }

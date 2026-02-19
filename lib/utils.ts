@@ -232,6 +232,28 @@ export function calculateSharpeRatio(
 }
 
 /**
+ * Well-known SPL token mints → symbol lookup.
+ * Helius swap events only provide mints; we map the most common ones.
+ */
+const KNOWN_MINTS: Record<string, string> = {
+  So11111111111111111111111111111111111111112: 'SOL',
+  EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: 'USDC',
+  Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: 'USDT',
+  // add more as needed
+};
+
+/**
+ * Try to derive a short symbol from a mint address.
+ * Returns the known symbol or a truncated mint string.
+ */
+function mintToSymbol(mint: string): string {
+  if (KNOWN_MINTS[mint]) return KNOWN_MINTS[mint];
+  // Show first 4 + last 4 chars for unknown mints
+  if (mint.length > 10) return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+  return mint;
+}
+
+/**
  * Transform Helius transaction payload to the UI swap transaction shape.
  */
 export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction {
@@ -247,37 +269,137 @@ export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction
     })
     .replace(',', '');
 
-  let action = tx.description || 'Unknown Swap';
-  const swapMatch = action.match(/(\w+)\s+for\s+(\w+)/i);
+  let action = '';
+  let fromSymbol = '';
+  let toSymbol = '';
 
-  if (swapMatch) {
-    action = `${swapMatch[1]} -> ${swapMatch[2]}`;
+  // ── Strategy 1: Short description pattern "SOL for USDC" ──
+  const desc = tx.description || '';
+  // Require at least one letter, reject pure numbers
+  const shortMatch = desc.match(/([a-zA-Z]+)\s+for\s+([a-zA-Z]+)/i);
+  if (shortMatch) {
+    fromSymbol = shortMatch[1].toUpperCase();
+    toSymbol = shortMatch[2].toUpperCase();
+    // Filter out common non-symbol words that might match
+    const invalid = new Set(['SWAPPED', 'UNKNOWN', 'TOKEN', 'FOR']);
+    if (!invalid.has(fromSymbol) && !invalid.has(toSymbol)) {
+      action = `${fromSymbol} -> ${toSymbol}`;
+    }
   }
 
-  // Extract token symbols from description and transfers
-  const symbols = new Set<string>();
-
-  // From the swap match (e.g., "SOL -> USDC")
-  if (swapMatch) {
-    symbols.add(swapMatch[1].toUpperCase());
-    symbols.add(swapMatch[2].toUpperCase());
+  // ── Strategy 2: Long description "X swapped 0.001 SOL for 3678777 TOKEN" ──
+  if (!action) {
+    // Match "swapped [amount] [Symbol] for [amount] [Symbol]"
+    // Ensure symbols are not just numbers
+    const longMatch = desc.match(
+      /swapped\s+[\d,.]+\s+([a-zA-Z0-9]+)\s+for\s+[\d,.]+\s+([a-zA-Z0-9]+)/i,
+    );
+    if (longMatch) {
+      const s1 = longMatch[1].toUpperCase();
+      const s2 = longMatch[2].toUpperCase();
+      // Heuristic: Symbols usually aren't just numbers. 
+      // If pure number, ignore.
+      if (!/^\d+$/.test(s1) && !/^\d+$/.test(s2)) {
+        fromSymbol = s1;
+        toSymbol = s2;
+        action = `${fromSymbol} -> ${toSymbol}`;
+      }
+    }
   }
 
-  // From action arrows (handles pre-formatted actions like "SOL -> USDC")
-  const arrowMatch = action.match(/(\w+)\s*->\s*(\w+)/);
+  // ── Strategy 3: Structured swap events (most reliable for PUMP_AMM etc.) ──
+  if (!action && tx.events?.swap) {
+    const swap = tx.events.swap;
+    const inputSymbol = swap.nativeInput
+      ? 'SOL'
+      : swap.tokenInputs?.[0]
+        ? mintToSymbol(swap.tokenInputs[0].mint)
+        : '';
+    const outputSymbol = swap.nativeOutput
+      ? 'SOL'
+      : swap.tokenOutputs?.[0]
+        ? mintToSymbol(swap.tokenOutputs[0].mint)
+        : '';
+
+    if (inputSymbol && outputSymbol) {
+      fromSymbol = inputSymbol;
+      toSymbol = outputSymbol;
+
+      // If both are SOL (e.g. wSOL unwrapping might look like this if mintToSymbol maps wSOL to SOL)
+      // Check if one is wSOL
+      if (fromSymbol === 'SOL' && toSymbol === 'SOL') {
+        if (swap.tokenInputs?.[0]?.mint === 'So11111111111111111111111111111111111111112') {
+          fromSymbol = 'wSOL';
+        }
+        if (swap.tokenOutputs?.[0]?.mint === 'So11111111111111111111111111111111111111112') {
+          toSymbol = 'wSOL';
+        }
+      }
+
+      action = `${fromSymbol} -> ${toSymbol}`;
+    } else if (inputSymbol) {
+      fromSymbol = inputSymbol;
+      action = `${fromSymbol} -> ?`;
+    } else if (outputSymbol) {
+      toSymbol = outputSymbol;
+      action = `? -> ${toSymbol}`;
+    }
+  }
+
+  // ── Strategy 4: Token transfer analysis ──
+  if (!action && tx.tokenTransfers?.length) {
+    const mints = new Set(tx.tokenTransfers.map((t) => t.mint));
+    const symbols = Array.from(mints).map(mintToSymbol);
+
+    if (tx.nativeTransfers?.length) {
+      // There were native (SOL) transfers too
+      const hasSignificantSol = tx.nativeTransfers.some(
+        (nt) => Math.abs(nt.amount) > 1_000_000,
+      );
+      if (hasSignificantSol && symbols.length > 0) {
+        action = `SOL -> ${symbols[0]}`;
+        fromSymbol = 'SOL';
+        toSymbol = symbols[0];
+      }
+    }
+
+    if (!action && symbols.length >= 2) {
+      fromSymbol = symbols[0];
+      toSymbol = symbols[1];
+      action = `${fromSymbol} -> ${toSymbol}`;
+    } else if (!action && symbols.length === 1) {
+      action = `Swap ${symbols[0]}`;
+      fromSymbol = symbols[0];
+    }
+  }
+
+  // Fallback
+  if (!action) {
+    action = 'Unknown Swap';
+  }
+
+  // ── Extract token symbols ──
+  const symbolSet = new Set<string>();
+
+  if (fromSymbol) symbolSet.add(fromSymbol.toUpperCase());
+  if (toSymbol) symbolSet.add(toSymbol.toUpperCase());
+
+  // From action arrows
+  const arrowMatch = action.match(/([a-zA-Z0-9]+)\s*->\s*([a-zA-Z0-9]+)/);
   if (arrowMatch) {
-    symbols.add(arrowMatch[1].toUpperCase());
-    symbols.add(arrowMatch[2].toUpperCase());
+    const s1 = arrowMatch[1].toUpperCase();
+    const s2 = arrowMatch[2].toUpperCase();
+    if (!/^\d+$/.test(s1)) symbolSet.add(s1);
+    if (!/^\d+$/.test(s2)) symbolSet.add(s2);
   }
 
-  // Also extract all capitalized words from the description that look like symbols
-  const descWords = (tx.description || '').match(/\b[A-Z][A-Z0-9]{1,9}\b/g);
+  // Also extract capitalized words from description that look like symbols
+  const descWords = desc.match(/\b[A-Z][A-Z0-9]{1,9}\b/g);
   if (descWords) {
+    const excluded = new Set(['THE', 'FOR', 'AND', 'WITH', 'FROM', 'INTO']);
     for (const word of descWords) {
-      // Filter out common non-symbol words
-      const excluded = new Set(['THE', 'FOR', 'AND', 'WITH', 'FROM', 'INTO']);
       if (!excluded.has(word)) {
-        symbols.add(word);
+        symbolSet.add(word);
       }
     }
   }
@@ -291,6 +413,6 @@ export function transformSwapTransaction(tx: HeliusTransaction): SwapTransaction
     platform: tx.source || 'Unknown',
     action,
     status,
-    tokenSymbols: Array.from(symbols),
+    tokenSymbols: Array.from(symbolSet),
   };
 }

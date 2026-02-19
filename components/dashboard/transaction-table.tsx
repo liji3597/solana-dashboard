@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Download, EyeOff } from "lucide-react";
 
 import { EntrySheet } from "@/components/dashboard/entry-sheet";
 import {
@@ -34,12 +35,16 @@ interface FormattedTransaction {
   date: string;
   platform: string;
   action: string;
+  valueSol?: number;
+  valueUsd?: number;
+  status: "success" | "failed";
   shortHash: string;
   solscanUrl: string;
   raw: SwapTransaction;
 }
 
 const SKELETON_ROWS = 5;
+const SPAM_THRESHOLD_USD = 1;
 
 function toTimestampMs(timestamp: number): number {
   return timestamp > 1_000_000_000_000 ? timestamp : timestamp * 1000;
@@ -93,6 +98,38 @@ function timestampToDateString(timestamp: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Export transactions to CSV and trigger a download.
+ */
+function exportToCsv(transactions: FormattedTransaction[]) {
+  const headers = ["Date", "Platform", "Action", "Value (SOL)", "Value (USD)", "Status", "Hash", "Solscan URL"];
+  const rows = transactions.map((tx) => [
+    tx.date,
+    tx.platform,
+    tx.action,
+    tx.valueSol?.toFixed(6) ?? "",
+    tx.valueUsd?.toFixed(2) ?? "",
+    tx.status,
+    tx.raw.signature,
+    tx.solscanUrl,
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function TransactionTable({ data, isLoading }: TransactionTableProps) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<SwapTransaction | null>(null);
@@ -105,6 +142,7 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
   const [selectedToken, setSelectedToken] = useState(ALL_TOKENS);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [hideSpam, setHideSpam] = useState(false);
 
   const formattedTransactions = useMemo<FormattedTransaction[]>(
     () =>
@@ -113,6 +151,9 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
         date: formatDate(transaction.date, transaction.timestamp),
         platform: transaction.platform || "--",
         action: transaction.action || "--",
+        valueSol: transaction.valueSol,
+        valueUsd: transaction.valueUsd,
+        status: transaction.status,
         shortHash: formatHash(transaction.signature),
         solscanUrl: `https://solscan.io/tx/${transaction.signature}`,
         raw: transaction,
@@ -134,13 +175,30 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
       // Date range filter
       const txDate = timestampToDateString(tx.raw.timestamp);
-
       if (dateFrom && txDate < dateFrom) return false;
       if (dateTo && txDate > dateTo) return false;
 
+      // Spam filter: hide low-value, failed, Unknown Swap, and wSOL wrap/unwrap txs
+      if (hideSpam) {
+        // Hide failed transactions
+        if (tx.status === "failed") return false;
+        // Hide low-value (< $1)
+        const usdValue = tx.valueUsd ?? 0;
+        if (usdValue < SPAM_THRESHOLD_USD) return false;
+        // Hide Unknown Swap
+        if (tx.action === "Unknown Swap") return false;
+        // Hide wSOL wrap/unwrap (e.g. SOL -> wSOL)
+        const actionLower = tx.action.toLowerCase();
+        if (
+          actionLower === "sol -> wsol" ||
+          actionLower === "wsol -> sol" ||
+          actionLower === "sol -> sol"
+        ) return false;
+      }
+
       return true;
     });
-  }, [formattedTransactions, selectedToken, dateFrom, dateTo]);
+  }, [formattedTransactions, selectedToken, dateFrom, dateTo, hideSpam]);
 
   useEffect(() => {
     const signatures = Array.from(
@@ -211,27 +269,58 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-      {/* Filter bar */}
+      {/* Filter bar + action buttons */}
       {!isLoading && data.length > 0 && (
-        <TransactionFilters
-          transactions={data}
-          selectedToken={selectedToken}
-          onTokenChange={setSelectedToken}
-          dateFrom={dateFrom}
-          onDateFromChange={setDateFrom}
-          dateTo={dateTo}
-          onDateToChange={setDateTo}
-          filteredCount={filteredTransactions.length}
-          totalCount={formattedTransactions.length}
-        />
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <TransactionFilters
+            transactions={data}
+            selectedToken={selectedToken}
+            onTokenChange={setSelectedToken}
+            dateFrom={dateFrom}
+            onDateFromChange={setDateFrom}
+            dateTo={dateTo}
+            onDateToChange={setDateTo}
+            filteredCount={filteredTransactions.length}
+            totalCount={formattedTransactions.length}
+          />
+          <div className="flex items-center gap-2">
+            {/* Spam filter toggle */}
+            <Button
+              type="button"
+              variant={hideSpam ? "default" : "outline"}
+              size="sm"
+              onClick={() => setHideSpam(!hideSpam)}
+              className="gap-1.5 text-xs"
+              title="Hide low-value (<$1), failed, Unknown Swap, and wSOL wrap/unwrap transactions"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              {hideSpam
+                ? `Filtered (${formattedTransactions.length - filteredTransactions.length} hidden)`
+                : "Hide spam"}
+            </Button>
+            {/* CSV export */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => exportToCsv(filteredTransactions)}
+              className="gap-1.5 text-xs"
+              title="Export filtered transactions to CSV"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </Button>
+          </div>
+        </div>
       )}
 
-      <Table className="min-w-[760px]">
+      <Table className="min-w-[860px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="text-muted-foreground">Date</TableHead>
             <TableHead className="text-muted-foreground">Platform</TableHead>
             <TableHead className="text-muted-foreground">Action</TableHead>
+            <TableHead className="text-muted-foreground text-right">Value</TableHead>
             <TableHead className="text-muted-foreground">Hash</TableHead>
             <TableHead className="text-muted-foreground">Log Status</TableHead>
           </TableRow>
@@ -253,6 +342,9 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
                   <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                 </TableCell>
                 <TableCell>
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                </TableCell>
+                <TableCell>
                   <div className="h-7 w-20 animate-pulse rounded bg-muted" />
                 </TableCell>
               </TableRow>
@@ -261,7 +353,7 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
 
           {!isLoading && filteredTransactions.length === 0 ? (
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                 {formattedTransactions.length === 0
                   ? "No transactions found"
                   : "No transactions match the current filters"}
@@ -274,7 +366,25 @@ export function TransactionTable({ data, isLoading }: TransactionTableProps) {
               <TableRow key={transaction.signature} className="hover:bg-muted/50">
                 <TableCell>{transaction.date}</TableCell>
                 <TableCell>{transaction.platform}</TableCell>
-                <TableCell>{transaction.action}</TableCell>
+                <TableCell className="max-w-[240px] truncate" title={transaction.action}>
+                  {transaction.action}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {transaction.valueSol != null ? (
+                    <div>
+                      <span className="text-card-foreground">
+                        {transaction.valueSol.toFixed(4)} SOL
+                      </span>
+                      {transaction.valueUsd != null && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          (${transaction.valueUsd.toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">--</span>
+                  )}
+                </TableCell>
                 <TableCell className="font-mono">
                   <a
                     href={transaction.solscanUrl}

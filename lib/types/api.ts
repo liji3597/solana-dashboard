@@ -114,6 +114,8 @@ export interface SwapTransaction {
   action: string; // 简短描述 (SOL -> USDC)
   status: 'success' | 'failed';
   tokenSymbols: string[]; // 涉及的代币符号，如 ['SOL', 'USDC']
+  valueSol?: number; // 交易的 SOL 价值（估算）
+  valueUsd?: number; // 交易的 USD 价值（估算）
 }
 
 export interface SaveJournalEntryInput {

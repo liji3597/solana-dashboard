@@ -123,6 +123,24 @@ export function KpiCards() {
           isLoading={isLoading}
         />
         <KpiCard
+          title="Overall ROI"
+          value={
+            data
+              ? `${data.overallROI >= 0 ? "+" : ""}${data.overallROI.toFixed(2)}%`
+              : "--"
+          }
+          trend={
+            data
+              ? data.overallROI > 0
+                ? "positive"
+                : data.overallROI < 0
+                  ? "negative"
+                  : "neutral"
+              : "neutral"
+          }
+          isLoading={isLoading}
+        />
+        <KpiCard
           title="Win Rate"
           value={data?.winRate ?? "--"}
           trend="neutral"
