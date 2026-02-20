@@ -89,7 +89,7 @@ function SkeletonItem() {
     );
 }
 
-export function TradingMetrics() {
+export function TradingMetrics({ wallet }: { wallet: string }) {
     const [data, setData] = useState<TradingMetricsData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -102,7 +102,7 @@ export function TradingMetrics() {
             setError(null);
 
             try {
-                const response = await fetch("/api/trading-metrics");
+                const response = await fetch(`/api/trading-metrics?wallet=${wallet}`);
 
                 if (!response.ok) {
                     const body = await response.json().catch(() => null);
@@ -130,7 +130,7 @@ export function TradingMetrics() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [wallet]);
 
     return (
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">

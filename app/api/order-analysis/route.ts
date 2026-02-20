@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getRecentTransactions } from '@/lib/api/helius';
-import { WHALE_WALLET } from '@/lib/constants/wallets';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 import type { HeliusTransaction } from '@/lib/types/api';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -139,9 +139,10 @@ export interface OrderAnalysisPayload {
 
 // ─── Route handler ───
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const transactions = await getRecentTransactions(WHALE_WALLET, 50);
+        const wallet = getWalletParam(request);
+        const transactions = await getRecentTransactions(wallet, 50);
 
         // Filter to swap-like transactions
         const swapTxs = transactions.filter((tx) => {
@@ -167,7 +168,7 @@ export async function GET() {
 
         for (const tx of swapTxs) {
             const orderType = classifyOrderType(tx);
-            const solDelta = estimateSolDelta(tx, WHALE_WALLET);
+            const solDelta = estimateSolDelta(tx, wallet);
             const platform = tx.source || 'Unknown';
 
             // Type

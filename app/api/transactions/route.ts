@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getRecentTransactions } from '@/lib/api/helius';
 import { resolveSymbols } from '@/lib/api/jupiter-tokens';
-import { WHALE_WALLET } from '@/lib/constants/wallets';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 import type { HeliusTransaction, SwapTransaction } from '@/lib/types/api';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -310,11 +310,13 @@ function estimateValueSol(tx: HeliusTransaction): number {
 
 // ─── Route handler ───
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const wallet = getWalletParam(request);
+
     // Fetch transactions + SOL price concurrently
     const [transactions, solPriceUsd] = await Promise.all([
-      getRecentTransactions(WHALE_WALLET, 20, 'SWAP'),
+      getRecentTransactions(wallet, 20, 'SWAP'),
       getSolPriceUsd(),
     ]);
 
@@ -332,7 +334,7 @@ export async function GET() {
       const { action, fromSymbol, toSymbol } = buildAction(
         tx,
         symbolMap,
-        WHALE_WALLET,
+        wallet,
       );
 
       // Collect token symbols

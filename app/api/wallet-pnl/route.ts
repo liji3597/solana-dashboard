@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getRecentTransactions } from "@/lib/api/helius";
 import { getWalletPositions } from "@/lib/api/mobula";
-import { WHALE_WALLET } from "@/lib/constants/wallets";
+import { getWalletParam } from "@/lib/api/get-wallet-param";
 import type { HeliusTransaction } from "@/lib/types/api";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -125,12 +125,14 @@ function classifySwap(
 
 // ─── Route handler ───
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const wallet = getWalletParam(request);
+
     // Fetch Mobula positions and Helius swaps in parallel
     const [walletData, transactions] = await Promise.all([
-      getWalletPositions(WHALE_WALLET),
-      getRecentTransactions(WHALE_WALLET, 50),
+      getWalletPositions(wallet),
+      getRecentTransactions(wallet, 50),
     ]);
 
     const positions = walletData.positions ?? [];
@@ -163,7 +165,7 @@ export async function GET() {
     // ── Trade-based Win Rate from Helius swaps ──
     const classifiedSwaps: ClassifiedSwap[] = [];
     for (const tx of transactions) {
-      const result = classifySwap(tx, WHALE_WALLET);
+      const result = classifySwap(tx, wallet);
       if (result) classifiedSwaps.push(result);
     }
 

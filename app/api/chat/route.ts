@@ -14,10 +14,12 @@ export const runtime = "nodejs";
 
 type ChatRequestBody = {
   messages?: UIMessage[];
+  wallet?: string;
 };
 
 export async function POST(req: Request) {
-  const { messages = [] } = (await req.json()) as ChatRequestBody;
+  const { messages = [], wallet: bodyWallet } = (await req.json()) as ChatRequestBody;
+  const wallet = bodyWallet || WHALE_WALLET;
   const modelMessages = await convertToModelMessages(messages);
 
   let netWorth = 0;
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
   let topTag = "N/A";
 
   try {
-    const walletData = await getWalletPositions(WHALE_WALLET);
+    const walletData = await getWalletPositions(wallet);
     const positions = walletData.positions ?? [];
 
     const profitablePositions = positions.filter((position) => {
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
       positions.reduce((sum, position) => sum + (position.value ?? 0), 0);
     netWorth = Number.isFinite(computedNetWorth) ? computedNetWorth : 0;
 
-    const journalStats = await getJournalStats(WHALE_WALLET, netWorth);
+    const journalStats = await getJournalStats(wallet, netWorth);
     if (!journalStats.success || !journalStats.data) {
       netWorth = 0;
       winRate = "0.0";

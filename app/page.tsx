@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AiCoach } from "@/components/dashboard/ai-coach";
+import { useEffect, useMemo, useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { AnalyticsView } from "@/components/dashboard/analytics-view";
 import { FeeCompositionChart } from "@/components/dashboard/fee-composition-chart";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
@@ -22,6 +23,14 @@ import type {
 const DEFAULT_NET_WORTH = 10000;
 
 export default function HomePage() {
+  const { publicKey, connected } = useWallet();
+
+  // Derive wallet address: connected wallet or default
+  const walletAddress = useMemo(
+    () => (connected && publicKey ? publicKey.toBase58() : WHALE_WALLET),
+    [connected, publicKey],
+  );
+
   const [historyData, setHistoryData] = useState<PortfolioHistoryPoint[]>([]);
   const [netWorth, setNetWorth] = useState<number | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -32,16 +41,18 @@ export default function HomePage() {
   const [analyticsData, setAnalyticsData] = useState<JournalStats | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
+  // ── Fetch portfolio data (re-runs when wallet changes) ──
   useEffect(() => {
+    setIsLoadingHistory(true);
+
     const fetchData = async () => {
       try {
-        // Fetch wallet PnL and portfolio history in parallel
+        const params = `?wallet=${walletAddress}`;
         const [pnlResponse, historyResponse] = await Promise.all([
-          fetch("/api/wallet-pnl"),
-          fetch("/api/portfolio-history"),
+          fetch(`/api/wallet-pnl${params}`),
+          fetch(`/api/portfolio-history${params}`),
         ]);
 
-        // Parse wallet PnL for netWorth
         const pnlData = await pnlResponse.json();
         const parsedNetWorth = Number(pnlData?.netWorth);
         const safeNetWorth =
@@ -50,7 +61,6 @@ export default function HomePage() {
             : DEFAULT_NET_WORTH;
         setNetWorth(safeNetWorth);
 
-        // Parse portfolio history (real Mobula data or simulated fallback)
         if (historyResponse.ok) {
           const historyResult = await historyResponse.json();
           const points = historyResult?.data ?? [];
@@ -73,12 +83,17 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, []);
+  }, [walletAddress]);
 
+  // ── Fetch transactions ──
   useEffect(() => {
+    setIsLoadingTransactions(true);
+
     const fetchTransactions = async () => {
       try {
-        const response = await fetch("/api/transactions");
+        const response = await fetch(
+          `/api/transactions?wallet=${walletAddress}`,
+        );
         const result = await response.json();
 
         if (!response.ok) {
@@ -95,8 +110,9 @@ export default function HomePage() {
     };
 
     fetchTransactions();
-  }, []);
+  }, [walletAddress]);
 
+  // ── Fetch analytics ──
   useEffect(() => {
     if (isLoadingHistory) {
       return;
@@ -107,7 +123,7 @@ export default function HomePage() {
     const loadAnalytics = async () => {
       setAnalyticsLoading(true);
 
-      const result = await getJournalStats(WHALE_WALLET, netWorth ?? undefined);
+      const result = await getJournalStats(walletAddress, netWorth ?? undefined);
 
       if (!isMounted) {
         return;
@@ -127,35 +143,47 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [isLoadingHistory, netWorth]);
+  }, [isLoadingHistory, netWorth, walletAddress]);
 
   return (
     <div className="min-h-screen bg-background p-8">
       <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Solana Journal</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Solana Journal</h1>
+          {connected && publicKey && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Analyzing: {publicKey.toBase58().slice(0, 4)}…{publicKey.toBase58().slice(-4)}
+            </p>
+          )}
+          {!connected && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Viewing default wallet · Connect to analyze your own
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <ModeToggle />
-          <button
-            type="button"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700"
-          >
-            Connect Wallet
-          </button>
+          <WalletMultiButton
+            style={{
+              backgroundColor: "hsl(var(--primary))",
+              borderRadius: "0.5rem",
+              height: "2.5rem",
+              fontSize: "0.875rem",
+            }}
+          />
         </div>
       </header>
 
       <main className="space-y-8">
-        <KpiCards />
+        <KpiCards wallet={walletAddress} />
         <PnlChart data={historyData} isLoading={isLoadingHistory} />
-        <TradingMetrics />
-        <TimeAnalysis />
-        <OrderAnalysis />
-        <FeeCompositionChart />
+        <TradingMetrics wallet={walletAddress} />
+        <TimeAnalysis wallet={walletAddress} />
+        <OrderAnalysis wallet={walletAddress} />
+        <FeeCompositionChart wallet={walletAddress} />
         <AnalyticsView stats={analyticsData} isLoading={analyticsLoading} />
         <TransactionTable data={transactions} isLoading={isLoadingTransactions} />
       </main>
-
-      <AiCoach />
     </div>
   );
 }

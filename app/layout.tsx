@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SolanaWalletProvider } from "@/components/solana-wallet-provider";
 import { AiCoach } from "@/components/dashboard/ai-coach";
 import "./globals.css";
 
@@ -36,9 +37,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <AiCoach />
-          <Toaster position="top-right" />
+          <SolanaWalletProvider>
+            {children}
+            <AiCoach />
+            <Toaster position="top-right" />
+          </SolanaWalletProvider>
         </ThemeProvider>
       </body>
     </html>

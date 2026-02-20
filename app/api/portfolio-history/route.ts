@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { fetchPortfolioHistory, getPortfolioHistoryFallback } from '@/lib/api/valuation';
-import { WHALE_WALLET } from '@/lib/constants/wallets';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 
 /**
  * GET /api/portfolio-history
@@ -10,9 +10,11 @@ import { WHALE_WALLET } from '@/lib/constants/wallets';
  * If the API call fails, falls back to simulated data so the chart
  * still renders rather than showing an empty state.
  */
-export async function GET() {
+export async function GET(request: Request) {
+    const wallet = getWalletParam(request);
+
     try {
-        const history = await fetchPortfolioHistory(WHALE_WALLET, 30);
+        const history = await fetchPortfolioHistory(wallet, 30);
 
         return NextResponse.json({
             success: true,
@@ -30,7 +32,7 @@ export async function GET() {
         try {
             // Quick inline fetch of wallet-pnl to get the real netWorth for simulation
             const { getWalletPositions } = await import('@/lib/api/mobula');
-            const walletData = await getWalletPositions(WHALE_WALLET);
+            const walletData = await getWalletPositions(wallet);
             const totalValue =
                 walletData.totalValue ??
                 walletData.positions.reduce((sum, p) => sum + (p.value ?? 0), 0);

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getRecentTransactions } from '@/lib/api/helius';
 import { getWalletPositions } from '@/lib/api/mobula';
-import { WHALE_WALLET } from '@/lib/constants/wallets';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 import type { HeliusTransaction } from '@/lib/types/api';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -51,7 +51,7 @@ export interface TradingMetricsPayload {
  * 2. Description parsing ("swapped X SOL for Y TOKEN")
  * 3. Token transfer analysis (wallet sends SOL & receives token = buy)
  */
-function parseSwap(tx: HeliusTransaction): ParsedSwap | null {
+function parseSwap(tx: HeliusTransaction, walletAddress: string): ParsedSwap | null {
     // Only process SWAP-type transactions
     if (tx.type !== 'SWAP' && tx.type !== 'swap') {
         // Also accept if the description mentions a swap
@@ -141,7 +141,7 @@ function parseSwap(tx: HeliusTransaction): ParsedSwap | null {
     // ── Strategy 3: Token transfer heuristic ──
     // If the wallet sends SOL (nativeTransfers) and receives tokens → buy
     // If the wallet receives SOL and sends tokens → sell
-    const walletLower = WHALE_WALLET.toLowerCase();
+    const walletLower = walletAddress.toLowerCase();
 
     let sentSol = false;
     let receivedSol = false;
@@ -182,11 +182,13 @@ function parseSwap(tx: HeliusTransaction): ParsedSwap | null {
 
 // ─── route handler ───
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const wallet = getWalletParam(request);
+
         const [walletData, transactions] = await Promise.all([
-            getWalletPositions(WHALE_WALLET),
-            getRecentTransactions(WHALE_WALLET, 50),
+            getWalletPositions(wallet),
+            getRecentTransactions(wallet, 50),
         ]);
 
         const positions = walletData.positions ?? [];
@@ -234,7 +236,7 @@ export async function GET() {
 
         const parsedSwaps: ParsedSwap[] = [];
         for (const tx of transactions) {
-            const parsed = parseSwap(tx);
+            const parsed = parseSwap(tx, wallet);
             if (parsed) parsedSwaps.push(parsed);
         }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getRecentTransactions } from '@/lib/api/helius';
-import { WHALE_WALLET } from '@/lib/constants/wallets';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 import type { HeliusTransaction } from '@/lib/types/api';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -97,9 +97,10 @@ function getSessionForHour(hour: number): typeof SESSIONS[number] | undefined {
 
 // ─── Route handler ───
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const transactions = await getRecentTransactions(WHALE_WALLET, 50);
+        const wallet = getWalletParam(request);
+        const transactions = await getRecentTransactions(wallet, 50);
 
         // ── Daily PnL aggregation ──
         const dailyMap = new Map<string, { pnl: number; txCount: number }>();
@@ -120,7 +121,7 @@ export async function GET() {
             const d = new Date(tx.timestamp * 1000);
             const dateStr = toDateString(d);
             const hourUtc = d.getUTCHours();
-            const pnlSol = estimateTxPnlSol(tx, WHALE_WALLET);
+            const pnlSol = estimateTxPnlSol(tx, wallet);
 
             // Daily
             const existing = dailyMap.get(dateStr) ?? { pnl: 0, txCount: 0 };

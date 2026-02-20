@@ -123,7 +123,7 @@ function SkeletonLoader() {
 
 // ─── Main component ───
 
-export function OrderAnalysis() {
+export function OrderAnalysis({ wallet }: { wallet: string }) {
     const [data, setData] = useState<OrderAnalysisData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -136,7 +136,7 @@ export function OrderAnalysis() {
             setError(null);
 
             try {
-                const response = await fetch("/api/order-analysis");
+                const response = await fetch(`/api/order-analysis?wallet=${wallet}`);
 
                 if (!response.ok) {
                     const body = await response.json().catch(() => null);
@@ -158,7 +158,7 @@ export function OrderAnalysis() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [wallet]);
 
     return (
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">

@@ -77,7 +77,7 @@ function FeeTooltip({ active, payload }: CustomTooltipProps) {
     );
 }
 
-export function FeeCompositionChart() {
+export function FeeCompositionChart({ wallet }: { wallet: string }) {
     const [data, setData] = useState<VolumeFeeData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export function FeeCompositionChart() {
             setError(null);
 
             try {
-                const response = await fetch("/api/volume-fees");
+                const response = await fetch(`/api/volume-fees?wallet=${wallet}`);
 
                 if (!response.ok) {
                     const errorBody = await response.json().catch(() => null);
@@ -117,7 +117,7 @@ export function FeeCompositionChart() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [wallet]);
 
     const chartData = useMemo(
         () =>

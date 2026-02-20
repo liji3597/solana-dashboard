@@ -35,7 +35,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export function KpiCards() {
+export function KpiCards({ wallet }: { wallet: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData | null>(null);
@@ -50,8 +50,8 @@ export function KpiCards() {
       try {
         // Fetch PnL and Volume/Fees in parallel
         const [pnlResponse, volumeFeesResponse] = await Promise.all([
-          fetch("/api/wallet-pnl"),
-          fetch("/api/volume-fees"),
+          fetch(`/api/wallet-pnl?wallet=${wallet}`),
+          fetch(`/api/volume-fees?wallet=${wallet}`),
         ]);
 
         if (!pnlResponse.ok) {
@@ -103,7 +103,7 @@ export function KpiCards() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [wallet]);
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
   const formatSol = (value: number, decimals = 4) => `${value.toFixed(decimals)} SOL`;

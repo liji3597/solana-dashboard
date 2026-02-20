@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getRecentTransactions } from '@/lib/api/helius';
+import { getWalletParam } from '@/lib/api/get-wallet-param';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
-
-// Use the same test wallet as the transactions API
-const TEST_WALLET = 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4';
 
 export interface VolumeFeeData {
     totalVolumeSol: number;
@@ -20,10 +18,11 @@ export interface FeeCompositionItem {
     percentage: number;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const wallet = getWalletParam(request);
         // Fetch last 50 transactions (broader than SWAP only so we capture more fee data)
-        const transactions = await getRecentTransactions(TEST_WALLET, 50);
+        const transactions = await getRecentTransactions(wallet, 50);
 
         let totalFeeLamports = 0;
         let totalVolumeLamports = 0;

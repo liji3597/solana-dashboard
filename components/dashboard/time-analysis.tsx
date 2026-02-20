@@ -60,7 +60,7 @@ function Skeleton() {
     );
 }
 
-export function TimeAnalysis() {
+export function TimeAnalysis({ wallet }: { wallet: string }) {
     const [data, setData] = useState<TimeAnalysisData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -73,7 +73,7 @@ export function TimeAnalysis() {
             setError(null);
 
             try {
-                const response = await fetch("/api/time-analysis");
+                const response = await fetch(`/api/time-analysis?wallet=${wallet}`);
 
                 if (!response.ok) {
                     const body = await response.json().catch(() => null);
@@ -101,7 +101,7 @@ export function TimeAnalysis() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [wallet]);
 
     return (
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
