@@ -65,7 +65,7 @@ A real-time **Solana wallet analytics dashboard** built with Next.js. Connect yo
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/solana-dashboard.git
+git clone https://github.com/liji3597/solana-dashboard.git
 cd solana-dashboard
 npm install
 ```
