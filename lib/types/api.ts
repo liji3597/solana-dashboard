@@ -53,19 +53,19 @@ export interface MobulaWalletPositions {
 }
 
 export interface PortfolioHistoryPoint {
-  date: string; // ISO 8601 格式 (YYYY-MM-DD)
-  value: number; // 美元价值
+  date: string; // ISO 8601 format (YYYY-MM-DD)
+  value: number; // USD value
 }
 
 export interface MaxDrawdownResult {
-  percentage: number; // 最大回撤百分比（负数）
-  peak: number; // 峰值价格
-  trough: number; // 谷底价格
-  peakDate?: string; // 可选：峰值日期
-  troughDate?: string; // 可选：谷底日期
+  percentage: number; // Max drawdown percentage (negative)
+  peak: number; // Peak value
+  trough: number; // Trough value
+  peakDate?: string; // Optional: peak date
+  troughDate?: string; // Optional: trough date
 }
 
-// Helius Enhanced Transaction 原始响应
+// Helius Enhanced Transaction raw response
 export interface HeliusTransaction {
   signature: string;
   timestamp: number;
@@ -105,17 +105,17 @@ export interface HeliusTransaction {
   } | null;
 }
 
-// 简化的 SWAP 交易数据（用于 UI 展示）
+// Simplified swap transaction data (for UI display)
 export interface SwapTransaction {
   signature: string;
   timestamp: number;
-  date: string; // 格式化后的日期 (YYYY-MM-DD HH:mm)
-  platform: string; // 来源平台 (Jupiter, Raydium 等)
-  action: string; // 简短描述 (SOL -> USDC)
+  date: string; // Formatted date (YYYY-MM-DD HH:mm)
+  platform: string; // Source platform (Jupiter, Raydium, etc.)
+  action: string; // Short description (SOL -> USDC)
   status: 'success' | 'failed';
-  tokenSymbols: string[]; // 涉及的代币符号，如 ['SOL', 'USDC']
-  valueSol?: number; // 交易的 SOL 价值（估算）
-  valueUsd?: number; // 交易的 USD 价值（估算）
+  tokenSymbols: string[]; // Involved token symbols, e.g. ['SOL', 'USDC']
+  valueSol?: number; // Estimated SOL value
+  valueUsd?: number; // Estimated USD value
 }
 
 export interface SaveJournalEntryInput {

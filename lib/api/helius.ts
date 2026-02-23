@@ -1,6 +1,32 @@
 import type { HeliusAssetsResponse, HeliusTransaction } from '../types/api';
 import { formatApiError, validateSolanaAddress } from '../utils';
 
+// ─── Retry helper for Helius rate-limits (429) ───
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  let lastResponse: Response | undefined;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(input, init);
+
+    if (response.status !== 429 || attempt === MAX_RETRIES) {
+      return response;
+    }
+
+    lastResponse = response;
+    // Exponential back-off: 500 → 1000 → 2000 ms
+    const delay = BASE_DELAY_MS * 2 ** attempt;
+    await new Promise((r) => setTimeout(r, delay));
+  }
+
+  return lastResponse!;
+}
 interface HeliusRpcSuccess {
   result: HeliusAssetsResponse;
 }
@@ -22,7 +48,7 @@ export async function getAssetsByOwner(
       throw new Error('HELIUS_API_KEY environment variable is not set');
     }
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
       {
         method: 'POST',
@@ -75,7 +101,7 @@ export async function getRecentTransactions(
       throw new Error('HELIUS_API_KEY environment variable is not set');
     }
 
-    // 使用 Enhanced Transactions API (api-mainnet.helius-rpc.com)
+    // Use the Enhanced Transactions API (api-mainnet.helius-rpc.com)
     const url = new URL(`https://api-mainnet.helius-rpc.com/v0/addresses/${walletAddress}/transactions`);
     url.searchParams.set('api-key', apiKey);
     if (type) {
@@ -83,7 +109,7 @@ export async function getRecentTransactions(
     }
     url.searchParams.set('limit', limit.toString());
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithRetry(url.toString(), {
       method: 'GET',
     });
 
@@ -99,7 +125,7 @@ export async function getRecentTransactions(
 
     const transactions = (await response.json()) as HeliusTransaction[];
 
-    // 验证返回数据
+    // Validate returned data
     if (!Array.isArray(transactions)) {
       throw new Error('Helius API returned invalid data format');
     }

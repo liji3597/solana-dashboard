@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+
+// Dynamic import — WalletMultiButton reads browser wallet extensions at render
+// time which causes hydration mismatch if rendered during SSR.
+const WalletMultiButton = dynamic(
+  () =>
+    import("@solana/wallet-adapter-react-ui").then(
+      (mod) => mod.WalletMultiButton,
+    ),
+  { ssr: false },
+);
 import { AnalyticsView } from "@/components/dashboard/analytics-view";
 import { FeeCompositionChart } from "@/components/dashboard/fee-composition-chart";
 import { KpiCards } from "@/components/dashboard/kpi-cards";

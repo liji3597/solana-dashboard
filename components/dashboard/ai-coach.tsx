@@ -125,7 +125,7 @@ export function AiCoach() {
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               disabled={isBusy}
-              placeholder="问点什么..."
+              placeholder="Ask something..."
               className="bg-muted/50 focus:ring-indigo-500 flex-1 rounded-full border-0 px-4 py-2 text-sm focus:outline-none focus:ring-2"
             />
             <Button
